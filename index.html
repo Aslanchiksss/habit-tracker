@@ -1,0 +1,232 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+  <meta name="mobile-web-app-capable" content="yes">
+  <meta name="theme-color" content="#1e3a5f">
+  <title>Трекер привычек</title>
+  <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+  <!-- HEADER -->
+  <header id="app-header">
+    <div class="header-left">
+      <h1>🎯 Трекер привычек</h1>
+    </div>
+    <div class="header-center">
+      <div class="level-bar">
+        <span id="level-label">Уровень 1</span>
+        <div class="xp-bar"><div class="xp-fill" id="xp-fill"></div></div>
+        <span id="points-label">0 очков</span>
+      </div>
+    </div>
+    <div class="header-right">
+      <button class="btn btn-icon" id="btn-diary" title="Дневник за сегодня">📋</button>
+      <button class="btn btn-icon" id="btn-stats" title="Статистика">📊</button>
+      <button class="btn btn-icon" id="btn-achievements" title="Достижения">🏆</button>
+      <button class="btn btn-icon" id="btn-cards" title="Коллекция карточек">🃏</button>
+      <button class="btn btn-primary" id="btn-add-habit">+ Новая привычка</button>
+    </div>
+  </header>
+
+  <!-- RESOURCE HUD -->
+  <div class="resource-hud" id="resource-hud"></div>
+
+  <!-- MAIN CONTENT -->
+  <main id="habits-container"></main>
+
+  <!-- MODAL: Create/Edit Habit -->
+  <div class="modal-overlay" id="modal-habit">
+    <div class="modal">
+      <div class="modal-header">
+        <h2 id="modal-habit-title">Новая привычка</h2>
+        <button class="modal-close" data-close="modal-habit">&times;</button>
+      </div>
+      <div class="modal-body">
+        <div class="form-group">
+          <label>Название</label>
+          <input type="text" id="habit-name" maxlength="50" placeholder="Название привычки">
+        </div>
+        <div class="form-group">
+          <label>Описание</label>
+          <textarea id="habit-desc" maxlength="200" rows="2" placeholder="Краткое описание"></textarea>
+        </div>
+        <div class="form-group">
+          <label>Категория</label>
+          <div class="category-select" id="category-select">
+            <button class="cat-btn" data-cat="sport">🏃 Спорт</button>
+            <button class="cat-btn" data-cat="health">💚 Здоровье</button>
+            <button class="cat-btn" data-cat="growth">📚 Саморазвитие</button>
+            <button class="cat-btn" data-cat="work">💼 Работа</button>
+          </div>
+        </div>
+        <div class="form-group">
+          <label>Цвет</label>
+          <div class="color-select" id="color-select">
+            <button class="color-btn" data-color="#FF6B6B" style="background:#FF6B6B"></button>
+            <button class="color-btn" data-color="#4ECDC4" style="background:#4ECDC4"></button>
+            <button class="color-btn" data-color="#45B7D1" style="background:#45B7D1"></button>
+            <button class="color-btn" data-color="#96CEB4" style="background:#96CEB4"></button>
+            <button class="color-btn" data-color="#FFEAA7" style="background:#FFEAA7"></button>
+            <button class="color-btn" data-color="#DDA0DD" style="background:#DDA0DD"></button>
+          </div>
+        </div>
+        <div class="form-group">
+          <label>Иконка</label>
+          <div class="icon-select" id="icon-select"></div>
+        </div>
+        <div class="form-group">
+          <label>Частота</label>
+          <select id="habit-frequency">
+            <option value="daily">Каждый день</option>
+            <option value="1week">1 раз в неделю</option>
+            <option value="3week">3 раза в неделю</option>
+            <option value="4week">4 раза в неделю</option>
+            <option value="5week">5 раз в неделю</option>
+          </select>
+        </div>
+      </div>
+      <div class="modal-footer">
+        <button class="btn btn-secondary" data-close="modal-habit">Отмена</button>
+        <button class="btn btn-primary" id="btn-save-habit">Сохранить</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- MODAL: Notes -->
+  <div class="modal-overlay" id="modal-notes">
+    <div class="modal">
+      <div class="modal-header">
+        <h2 id="modal-notes-title">Заметки</h2>
+        <button class="modal-close" data-close="modal-notes">&times;</button>
+      </div>
+      <div class="modal-body">
+        <div class="form-group">
+          <label>Название</label>
+          <input type="text" id="note-title" maxlength="60" placeholder="Краткое название заметки">
+        </div>
+        <div class="form-group">
+          <label>Описание</label>
+          <textarea id="note-text" maxlength="500" rows="3" placeholder="Подробности (до 500 символов)..."></textarea>
+          <div class="char-counter"><span id="note-char-count">0</span>/500</div>
+        </div>
+        <button class="btn btn-primary" id="btn-save-note" style="width:100%;margin-bottom:16px;">Добавить заметку</button>
+        <div id="notes-list" class="notes-list"></div>
+      </div>
+    </div>
+  </div>
+
+  <!-- MODAL: Achievements -->
+  <div class="modal-overlay" id="modal-achievements">
+    <div class="modal modal-wide modal-dark">
+      <div class="modal-header">
+        <h2>🏆 Достижения</h2>
+        <button class="modal-close" data-close="modal-achievements">&times;</button>
+      </div>
+      <div class="modal-body">
+        <div id="achievements-header"></div>
+        <div class="achievements-filter" id="achievements-filter"></div>
+        <div class="achievements-grid" id="achievements-grid"></div>
+      </div>
+    </div>
+  </div>
+
+  <!-- MODAL: Badge Detail -->
+  <div class="modal-overlay" id="modal-badge-detail">
+    <div class="modal modal-small modal-dark">
+      <div class="modal-header">
+        <h2 id="badge-detail-title"></h2>
+        <button class="modal-close" data-close="modal-badge-detail">&times;</button>
+      </div>
+      <div class="modal-body" id="badge-detail-body"></div>
+    </div>
+  </div>
+
+  <!-- MODAL: Stats -->
+  <div class="modal-overlay" id="modal-stats">
+    <div class="modal">
+      <div class="modal-header">
+        <h2>📊 Статистика</h2>
+        <button class="modal-close" data-close="modal-stats">&times;</button>
+      </div>
+      <div class="modal-body" id="stats-body"></div>
+    </div>
+  </div>
+
+  <!-- MODAL: Diary -->
+  <div class="modal-overlay" id="modal-diary">
+    <div class="modal">
+      <div class="modal-header">
+        <h2>📋 Дневник за сегодня</h2>
+        <button class="modal-close" data-close="modal-diary">&times;</button>
+      </div>
+      <div class="modal-body">
+        <pre id="diary-text" class="diary-text"></pre>
+      </div>
+      <div class="modal-footer">
+        <button class="btn btn-primary" id="btn-copy-diary">📋 Скопировать в буфер</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- MODAL: Card Collection -->
+  <div class="modal-overlay" id="modal-cards">
+    <div class="modal modal-wide modal-dark">
+      <div class="modal-header">
+        <h2>🃏 Коллекция карточек</h2>
+        <button class="modal-close" data-close="modal-cards">&times;</button>
+      </div>
+      <div class="modal-body">
+        <div id="card-collection-stats"></div>
+        <h3 class="cards-section-title">📦 Коллекция</h3>
+        <div class="card-grid" id="card-collection-grid"></div>
+        <h3 class="cards-section-title">🛒 Магазин</h3>
+        <div class="card-grid" id="card-shop-grid"></div>
+      </div>
+    </div>
+  </div>
+
+  <!-- MODAL: Card Detail -->
+  <div class="modal-overlay" id="modal-card-detail">
+    <div class="modal modal-small modal-dark">
+      <div class="modal-header">
+        <h2 id="card-detail-title"></h2>
+        <button class="modal-close" data-close="modal-card-detail">&times;</button>
+      </div>
+      <div class="modal-body" id="card-detail-body"></div>
+    </div>
+  </div>
+
+  <!-- LEVEL UP OVERLAY -->
+  <div class="level-up-overlay" id="level-up-overlay">
+    <div class="level-up-content">
+      <div class="level-up-star">⭐</div>
+      <h1 class="level-up-text">УРОВЕНЬ <span id="new-level-num"></span>!</h1>
+      <p class="level-up-sub">Поздравляем с повышением!</p>
+    </div>
+  </div>
+
+  <!-- ACHIEVEMENT POPUP -->
+  <div class="achievement-popup" id="achievement-popup">
+    <div class="achievement-popup-rarity" id="achievement-popup-rarity"></div>
+    <div class="achievement-popup-content">
+      <div class="achievement-popup-icon" id="achievement-popup-icon"></div>
+      <div class="achievement-popup-text">
+        <div class="achievement-popup-label">Достижение получено!</div>
+        <div class="achievement-popup-name" id="achievement-popup-name"></div>
+      </div>
+    </div>
+  </div>
+
+  <!-- CONFETTI CANVAS -->
+  <canvas id="confetti-canvas"></canvas>
+
+  <!-- TOAST CONTAINER -->
+  <div id="toast-container"></div>
+
+  <script src="app.js"></script>
+</body>
+</html>
