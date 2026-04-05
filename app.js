@@ -277,21 +277,24 @@ function handleLogin() {
   USER_CODE = code;
   localStorage.setItem('userCode', code);
 
+  let started = false;
+  const startOnce = () => { if (!started) { started = true; initApp(); } };
   cloudLoad((exists) => {
-    if (exists) {
-      hint.textContent = 'Данные загружены!';
-    }
-    initApp();
+    if (exists) hint.textContent = 'Данные загружены!';
+    startOnce();
   });
+  setTimeout(startOnce, 3000);
 }
 
 // Check if already logged in
 if (USER_CODE) {
-  cloudLoad(() => {
-    initApp();
-  });
+  // Try cloud load with timeout — if Firestore is slow/blocked, start app anyway
+  let started = false;
+  const startOnce = () => { if (!started) { started = true; initApp(); } };
+  cloudLoad(() => startOnce());
+  setTimeout(startOnce, 3000); // fallback after 3 sec
 } else {
-  // Show login screen, hide app
+  // Show login screen
   document.getElementById('login-screen').style.display = 'flex';
 }
 
