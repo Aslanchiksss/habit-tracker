@@ -140,16 +140,8 @@ function loadData(key, def) {
 }
 function saveData(key, val) { localStorage.setItem(key, JSON.stringify(val)); }
 
-// Device ID for Firestore (unique per browser)
-function getDeviceId() {
-  let id = localStorage.getItem('deviceId');
-  if (!id) {
-    id = 'dev_' + Date.now().toString(36) + Math.random().toString(36).slice(2, 9);
-    localStorage.setItem('deviceId', id);
-  }
-  return id;
-}
-const DEVICE_ID = getDeviceId();
+// User code for Firestore sync
+let USER_CODE = localStorage.getItem('userCode') || null;
 
 let habits = loadData('habits', []);
 let completions = loadData('completions', []);
@@ -190,14 +182,13 @@ function persist() {
   saveData('tracker', tracker);
   saveData('resources', resources);
   saveData('ownedCards', ownedCards);
-  // Sync to Firestore
   cloudSave();
 }
 
 // === FIREBASE SYNC ===
 let cloudSaveTimer = null;
 function cloudSave() {
-  if (!window.db) return;
+  if (!window.db || !USER_CODE) return;
   clearTimeout(cloudSaveTimer);
   cloudSaveTimer = setTimeout(() => {
     const data = {
@@ -206,22 +197,16 @@ function cloudSave() {
       firstOpenDate, tracker,
       updatedAt: new Date().toISOString()
     };
-    window.db.collection('users').doc(DEVICE_ID).set(data)
+    window.db.collection('users').doc(USER_CODE).set(data)
       .catch(err => console.warn('Cloud save failed:', err));
   }, 1000);
 }
 
-// Load from Firestore on startup (if cloud data exists and is newer)
-function cloudLoad() {
-  if (!window.db) return;
-  window.db.collection('users').doc(DEVICE_ID).get().then(doc => {
-    if (!doc.exists) {
-      cloudSave(); // first time — push local data to cloud
-      return;
-    }
-    const data = doc.data();
-    const localDate = loadData('lastCloudSync', null);
-    if (data.updatedAt && (!localDate || data.updatedAt > localDate)) {
+function cloudLoad(callback) {
+  if (!window.db || !USER_CODE) return;
+  window.db.collection('users').doc(USER_CODE).get().then(doc => {
+    if (doc.exists) {
+      const data = doc.data();
       habits = data.habits || [];
       completions = data.completions || [];
       notes = data.notes || [];
@@ -231,7 +216,7 @@ function cloudLoad() {
       ownedCards = data.ownedCards || [];
       firstOpenDate = data.firstOpenDate || todayStr();
       tracker = data.tracker || tracker;
-      // Save to localStorage
+      // Update localStorage
       saveData('habits', habits);
       saveData('completions', completions);
       saveData('notes', notes);
@@ -241,18 +226,79 @@ function cloudLoad() {
       saveData('ownedCards', ownedCards);
       saveData('firstOpenDate', firstOpenDate);
       saveData('tracker', tracker);
-      saveData('lastCloudSync', data.updatedAt);
-      // Re-render UI
-      if (typeof renderHabits === 'function') {
-        renderHabits();
-        updateHeader();
-        updateResourceHUD();
-        checkAchievements();
-      }
     }
-  }).catch(err => console.warn('Cloud load failed:', err));
+    if (callback) callback(doc.exists);
+  }).catch(err => {
+    console.warn('Cloud load failed:', err);
+    if (callback) callback(false);
+  });
 }
-cloudLoad();
+
+// === LOGIN SYSTEM ===
+function initApp() {
+  // Record today's open
+  if (!tracker.openDates) tracker.openDates = [];
+  if (!tracker.openDates.includes(todayStr())) {
+    tracker.openDates.push(todayStr());
+  }
+  tracker.lastOpenDate = todayStr();
+  saveData('tracker', tracker);
+
+  document.getElementById('login-screen').classList.add('hidden');
+  populateIcons();
+  updateHeader();
+  updateResourceHUD();
+  renderHabits();
+  checkAchievements();
+  // Push current data to cloud
+  cloudSave();
+}
+
+function handleLogin() {
+  const input = document.getElementById('login-code');
+  const hint = document.getElementById('login-hint');
+  const code = input.value.trim().toLowerCase();
+
+  if (!code || code.length < 3) {
+    hint.textContent = 'Код должен быть минимум 3 символа';
+    hint.className = 'login-hint error';
+    return;
+  }
+
+  if (!/^[a-zA-Z0-9_-]+$/.test(code)) {
+    hint.textContent = 'Только латинские буквы, цифры, - и _';
+    hint.className = 'login-hint error';
+    return;
+  }
+
+  hint.textContent = 'Загрузка...';
+  hint.className = 'login-hint';
+
+  USER_CODE = code;
+  localStorage.setItem('userCode', code);
+
+  cloudLoad((exists) => {
+    if (exists) {
+      hint.textContent = 'Данные загружены!';
+    }
+    initApp();
+  });
+}
+
+// Check if already logged in
+if (USER_CODE) {
+  cloudLoad(() => {
+    initApp();
+  });
+} else {
+  // Show login screen, hide app
+  document.getElementById('login-screen').style.display = 'flex';
+}
+
+document.getElementById('btn-login').addEventListener('click', handleLogin);
+document.getElementById('login-code').addEventListener('keydown', (e) => {
+  if (e.key === 'Enter') handleLogin();
+});
 
 // === UTILITIES ===
 function genId() { return Date.now().toString(36) + Math.random().toString(36).slice(2, 7); }
@@ -1968,8 +2014,4 @@ if (!loadData('_reset_v3', false)) {
 }
 
 // === INIT ===
-populateIcons();
-updateHeader();
-updateResourceHUD();
-renderHabits();
-checkAchievements();
+// (initialization is handled by login system above)
