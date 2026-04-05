@@ -227,6 +227,21 @@
   <!-- TOAST CONTAINER -->
   <div id="toast-container"></div>
 
+  <!-- Firebase SDK -->
+  <script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-app-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore-compat.js"></script>
+  <script>
+    const firebaseConfig = {
+      apiKey: "AIzaSyD_3yTlJdWOUIMfX6H4pu460KNsUaOTwQ0",
+      authDomain: "hobby-3edb7.firebaseapp.com",
+      projectId: "hobby-3edb7",
+      storageBucket: "hobby-3edb7.firebasestorage.app",
+      messagingSenderId: "328779684670",
+      appId: "1:328779684670:web:c89816dfce32a714f0ea6f"
+    };
+    firebase.initializeApp(firebaseConfig);
+    window.db = firebase.firestore();
+  </script>
   <script src="app.js"></script>
 </body>
 </html>
