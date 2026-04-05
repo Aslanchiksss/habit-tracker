@@ -244,7 +244,10 @@ function initApp() {
   tracker.lastOpenDate = todayStr();
   saveData('tracker', tracker);
 
-  document.getElementById('login-screen').classList.add('hidden');
+  document.getElementById('login-screen').style.display = 'none';
+  document.getElementById('app-header').style.display = '';
+  document.getElementById('resource-hud').style.display = '';
+  document.getElementById('habits-container').style.display = '';
   populateIcons();
   updateHeader();
   updateResourceHUD();
