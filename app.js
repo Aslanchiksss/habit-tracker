@@ -1429,6 +1429,19 @@ document.getElementById('btn-cards').addEventListener('click', () => {
   openModal('modal-cards');
 });
 
+document.getElementById('btn-reset').addEventListener('click', async () => {
+  if (!confirm('Сбросить ВЕСЬ прогресс? Это удалит все привычки, очки, достижения и карточки. Отменить нельзя.')) return;
+  try {
+    if (window.db && USER_CODE) {
+      await window.db.collection('users').doc(USER_CODE).delete();
+    }
+  } catch (e) {
+    console.warn('Cloud reset failed:', e);
+  }
+  localStorage.clear();
+  location.reload();
+});
+
 function renderAchievements() {
   const totalUnlocked = unlockedBadges.length;
   const totalAll = ALL_BADGES.length;
