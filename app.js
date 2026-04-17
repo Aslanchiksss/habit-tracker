@@ -188,6 +188,30 @@ function persist() {
 
 // === FIREBASE SYNC ===
 let cloudSaveTimer = null;
+let cloudExistsSeen = false;
+let cloudListener = null;
+
+function applyCloudData(data) {
+  habits = data.habits || [];
+  completions = data.completions || [];
+  notes = data.notes || [];
+  points = data.points || 0;
+  unlockedBadges = data.unlockedBadges || [];
+  resources = data.resources || { sport: 0, health: 0, growth: 0, work: 0 };
+  ownedCards = data.ownedCards || [];
+  firstOpenDate = data.firstOpenDate || todayStr();
+  tracker = data.tracker || tracker;
+  saveData('habits', habits);
+  saveData('completions', completions);
+  saveData('notes', notes);
+  saveData('points', points);
+  saveData('unlockedBadges', unlockedBadges);
+  saveData('resources', resources);
+  saveData('ownedCards', ownedCards);
+  saveData('firstOpenDate', firstOpenDate);
+  saveData('tracker', tracker);
+}
+
 function cloudSave() {
   if (!window.db || !USER_CODE) return;
   clearTimeout(cloudSaveTimer);
@@ -207,32 +231,32 @@ function cloudLoad(callback) {
   if (!window.db || !USER_CODE) return;
   window.db.collection('users').doc(USER_CODE).get().then(doc => {
     if (doc.exists) {
-      const data = doc.data();
-      habits = data.habits || [];
-      completions = data.completions || [];
-      notes = data.notes || [];
-      points = data.points || 0;
-      unlockedBadges = data.unlockedBadges || [];
-      resources = data.resources || { sport: 0, health: 0, growth: 0, work: 0 };
-      ownedCards = data.ownedCards || [];
-      firstOpenDate = data.firstOpenDate || todayStr();
-      tracker = data.tracker || tracker;
-      // Update localStorage
-      saveData('habits', habits);
-      saveData('completions', completions);
-      saveData('notes', notes);
-      saveData('points', points);
-      saveData('unlockedBadges', unlockedBadges);
-      saveData('resources', resources);
-      saveData('ownedCards', ownedCards);
-      saveData('firstOpenDate', firstOpenDate);
-      saveData('tracker', tracker);
+      cloudExistsSeen = true;
+      applyCloudData(doc.data());
     }
     if (callback) callback(doc.exists);
   }).catch(err => {
     console.warn('Cloud load failed:', err);
     if (callback) callback(false);
   });
+}
+
+function startCloudListener() {
+  if (!window.db || !USER_CODE || cloudListener) return;
+  cloudListener = window.db.collection('users').doc(USER_CODE)
+    .onSnapshot(doc => {
+      if (doc.metadata.hasPendingWrites) return;
+      if (doc.exists) {
+        cloudExistsSeen = true;
+        applyCloudData(doc.data());
+        if (typeof renderHabits === 'function') renderHabits();
+        if (typeof updateHeader === 'function') updateHeader();
+        if (typeof updateResourceHUD === 'function') updateResourceHUD();
+      } else if (cloudExistsSeen) {
+        localStorage.clear();
+        location.reload();
+      }
+    }, err => console.warn('Cloud listener error:', err));
 }
 
 // === LOGIN SYSTEM ===
@@ -254,6 +278,7 @@ function initApp() {
   updateResourceHUD();
   renderHabits();
   checkAchievements();
+  startCloudListener();
 }
 
 function handleLogin() {
