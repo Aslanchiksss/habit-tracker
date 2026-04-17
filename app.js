@@ -140,8 +140,9 @@ function loadData(key, def) {
 }
 function saveData(key, val) { localStorage.setItem(key, JSON.stringify(val)); }
 
-// User code for Firestore sync
-let USER_CODE = localStorage.getItem('userCode') || null;
+// User code for Firestore sync — hardcoded single-user mode
+let USER_CODE = 'aslan-main';
+localStorage.setItem('userCode', USER_CODE);
 
 let habits = loadData('habits', []);
 let completions = loadData('completions', []);
@@ -253,8 +254,6 @@ function initApp() {
   updateResourceHUD();
   renderHabits();
   checkAchievements();
-  // Push current data to cloud
-  cloudSave();
 }
 
 function handleLogin() {
@@ -289,16 +288,15 @@ function handleLogin() {
   setTimeout(startOnce, 3000);
 }
 
-// Check if already logged in
-if (USER_CODE) {
-  // Try cloud load with timeout — if Firestore is slow/blocked, start app anyway
+// Single-user mode: auto-load from cloud, longer timeout so slow connections don't lose data
+{
   let started = false;
   const startOnce = () => { if (!started) { started = true; initApp(); } };
   cloudLoad(() => startOnce());
-  setTimeout(startOnce, 3000); // fallback after 3 sec
-} else {
-  // Show login screen
-  document.getElementById('login-screen').style.display = 'flex';
+  setTimeout(startOnce, 8000); // fallback after 8 sec
+
+  // Hide login screen permanently
+  document.getElementById('login-screen').style.display = 'none';
 }
 
 document.getElementById('btn-login').addEventListener('click', handleLogin);
